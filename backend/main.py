@@ -1,11 +1,13 @@
 import os
 import re
 import sqlite3
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+# 1. 앱 생성 및 CORS 설정 (단 한 번만 선언)
 app = FastAPI()
-# 1. 모든 도메인/메소드/헤더 허용
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,7 +17,7 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-# 2. 브라우저의 사전 점검(OPTIONS) 요청을 무조건 통과시키는 전역 핸들러
+# 2. 브라우저 사전 점검(OPTIONS) 요청 전역 처리
 @app.options("/{full_path:path}")
 async def options_handler(request: Request, full_path: str):
     return Response(
@@ -26,12 +28,17 @@ async def options_handler(request: Request, full_path: str):
             "Access-Control-Allow-Headers": "*",
         },
     )
+
 DB_PATH = "./app.db"
+
 def get_db():
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    dir_name = os.path.dirname(DB_PATH)
+    if dir_name:
+        os.makedirs(dir_name, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
 def init_db():
     with get_db() as conn:
         conn.execute("""CREATE TABLE IF NOT EXISTS documents (
@@ -67,17 +74,22 @@ def init_db():
         columns = {row["name"] for row in conn.execute("PRAGMA table_info(editorial_guidelines)").fetchall()}
         if "is_enabled" not in columns:
             conn.execute("ALTER TABLE editorial_guidelines ADD COLUMN is_enabled INTEGER NOT NULL DEFAULT 1")
-app = FastAPI()
+
 init_db()
+
 class TextRequest(BaseModel):
     text: str
+
 class AcceptRequest(BaseModel):
     accepted: bool
+
 class GuidelineRequest(BaseModel):
     title: str
     content: str
+
 class GuidelineEnabledRequest(BaseModel):
     is_enabled: bool
+
 def refine_sentence(text: str):
     revised = text.strip()
     reasons = []
@@ -102,10 +114,11 @@ def refine_sentence(text: str):
         if re.search(pattern, revised):
             revised = re.sub(pattern, replacement, revised)
             reasons.append(reason)
-    revised = re.sub(r"\s+", " ", revised)
-    if revised != text.strip():
-        return revised, reasons[0] if reasons else "문장 흐름을 자연스럽게 다듬었습니다."
-    return revised, "필수 교정 사항은 없습니다."
+    # 규칙에 걸린 게 있으면 첫 번째 이유 반환, 없으면 교정 없음으로 처리
+    if reasons:
+        return revised, reasons[0]
+    return text.strip(), "필수 교정 사항은 없습니다."
+
 def make_guideline_suggestions(text: str):
     with get_db() as conn:
         guidelines = conn.execute("SELECT title, content FROM editorial_guidelines WHERE is_enabled = 1 ORDER BY id").fetchall()
@@ -114,7 +127,6 @@ def make_guideline_suggestions(text: str):
         content = guideline["content"].strip()
         replacements = re.findall(r"(.+?)\s*(?:→|->|▶)\s*(.+)", content)
         for source, target in replacements:
-            # 화살표 바깥의 구분 공백만 정리하고, 표현 안의 공백은 그대로 보존합니다.
             source, target = source.strip("‘’\"'"), target.strip(".‘’\"'")
             source, target = source.rstrip(), target.lstrip()
             if source and target and source != target and source in text:
@@ -125,6 +137,7 @@ def make_guideline_suggestions(text: str):
                     "alternatives": [target],
                 })
     return suggestions
+
 def make_suggestions(text: str):
     units = [part.strip() for part in re.split(r"(?<=[.!?])\s+|\n+", text) if part.strip()]
     if not units and text.strip():
@@ -148,18 +161,26 @@ def make_suggestions(text: str):
             suggestions.append(item)
             seen.add(key)
     return suggestions
+
 def get_suggestions(document_id: int):
     with get_db() as conn:
         rows = conn.execute("SELECT * FROM suggestions WHERE document_id = ? ORDER BY id", (document_id,)).fetchall()
     return [{**dict(row), "accepted": bool(row["accepted"]), "alternatives": row["alternatives"].split("\u241f")} for row in rows]
+
+@app.get("/")
+def read_root():
+    return {"status": "backend is running"}
+
 @app.get("/api/health")
 def health():
     return {"ok": True}
+
 @app.get("/api/guidelines")
 def list_guidelines():
     with get_db() as conn:
         rows = conn.execute("SELECT * FROM editorial_guidelines ORDER BY id DESC").fetchall()
     return [dict(row) for row in rows]
+
 @app.post("/api/guidelines")
 def create_guideline(payload: GuidelineRequest):
     title = payload.title.strip()
@@ -172,6 +193,7 @@ def create_guideline(payload: GuidelineRequest):
         cur = conn.execute("INSERT INTO editorial_guidelines (title, content) VALUES (?, ?)", (title, content))
         row = conn.execute("SELECT * FROM editorial_guidelines WHERE id = ?", (cur.lastrowid,)).fetchone()
     return dict(row)
+
 @app.put("/api/guidelines/{guideline_id}")
 def update_guideline(guideline_id: int, payload: GuidelineRequest):
     title = payload.title.strip()
@@ -186,6 +208,7 @@ def update_guideline(guideline_id: int, payload: GuidelineRequest):
             raise HTTPException(status_code=404, detail="원칙을 찾을 수 없습니다.")
         row = conn.execute("SELECT * FROM editorial_guidelines WHERE id = ?", (guideline_id,)).fetchone()
     return dict(row)
+
 @app.patch("/api/guidelines/{guideline_id}/enabled")
 def update_guideline_enabled(guideline_id: int, payload: GuidelineEnabledRequest):
     with get_db() as conn:
@@ -194,11 +217,13 @@ def update_guideline_enabled(guideline_id: int, payload: GuidelineEnabledRequest
             raise HTTPException(status_code=404, detail="원칙을 찾을 수 없습니다.")
         row = conn.execute("SELECT * FROM editorial_guidelines WHERE id = ?", (guideline_id,)).fetchone()
     return dict(row)
+
 @app.delete("/api/guidelines")
 def delete_all_guidelines():
     with get_db() as conn:
         conn.execute("DELETE FROM editorial_guidelines")
     return {"ok": True}
+
 @app.delete("/api/guidelines/{guideline_id}")
 def delete_guideline(guideline_id: int):
     with get_db() as conn:
@@ -206,6 +231,7 @@ def delete_guideline(guideline_id: int):
     if cur.rowcount == 0:
         raise HTTPException(status_code=404, detail="원칙을 찾을 수 없습니다.")
     return {"ok": True}
+
 @app.post("/api/documents")
 def create_document(payload: TextRequest):
     text = payload.text.strip()
@@ -221,11 +247,13 @@ def create_document(payload: TextRequest):
                 (document_id, item["original_text"], item["suggested_text"], item["reason"], "\u241f".join(item["alternatives"]))
             )
     return {"id": document_id, "original_text": text, "suggestions": get_suggestions(document_id)}
+
 @app.get("/api/documents")
 def list_documents():
     with get_db() as conn:
         rows = conn.execute("SELECT id, original_text, created_at FROM documents ORDER BY id DESC LIMIT 12").fetchall()
     return [dict(row) for row in rows]
+
 @app.get("/api/documents/{document_id}")
 def get_document(document_id: int):
     with get_db() as conn:
@@ -233,12 +261,14 @@ def get_document(document_id: int):
     if not row:
         raise HTTPException(status_code=404, detail="원고를 찾을 수 없습니다.")
     return {**dict(row), "suggestions": get_suggestions(document_id)}
+
 @app.delete("/api/documents")
 def delete_all_documents():
     with get_db() as conn:
         conn.execute("DELETE FROM suggestions")
         conn.execute("DELETE FROM documents")
     return {"ok": True}
+
 @app.delete("/api/documents/{document_id}")
 def delete_document(document_id: int):
     with get_db() as conn:
@@ -248,6 +278,7 @@ def delete_document(document_id: int):
         conn.execute("DELETE FROM suggestions WHERE document_id = ?", (document_id,))
         conn.execute("DELETE FROM documents WHERE id = ?", (document_id,))
     return {"ok": True}
+
 @app.patch("/api/suggestions/{suggestion_id}")
 def update_suggestion(suggestion_id: int, payload: AcceptRequest):
     with get_db() as conn:

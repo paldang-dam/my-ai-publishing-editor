@@ -1,2 +1,2 @@
 export const api = (path: string, init?: RequestInit) =>
-  fetch(import.meta.env.BASE_URL + 'api/' + path.replace(/^\/+/, ''), init)
+  fetch('https://my-ai-publishing-editor.onrender.com/api/' + path.replace(/^\/+/, ''), init)

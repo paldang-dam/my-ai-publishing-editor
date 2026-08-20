@@ -142,7 +142,7 @@ export default function App() {
       </section>
       <section className="results" aria-live="polite"><div className="results-heading"><div><h2>{documentId ? `검토한 문장 ${suggestions.length}개` : '제안 결과'}</h2></div>{documentId && <span className="count-chip">제안 {suggestions.length}개</span>}</div>
         {loading && <div className="state-box">문장을 차분히 살피고 있습니다.</div>}
-        {!loading && !documentId && <div className="empty-state"><span>✦</span><p>원고를 입력하고 ‘문장 다듬기’를 누르면 문장별 제안이 이곳에 표시됩니다.</p></div>}
+        {!loading && !documentId && <div className="empty-state"><span>✦</span><p>원고를 입력하고 ‘문장 다듬기’를 누르면<br className="mobile-break" /> 문장별 제안이 이곳에 표시됩니다.</p></div>}
         {!loading && documentId && suggestions.length === 0 && <div className="state-box">교정 사항이 없습니다.</div>}
         <div className="suggestion-list">{suggestions.map((item, i) => <SuggestionCard key={item.id} item={item} index={i} onAccept={accept} />)}</div>
         {documentId && acceptedCount > 0 && <section className="applied-panel" aria-label="반영한 원고"><div className="applied-heading"><div><h2>반영한 원고</h2></div><button className="copy-history-button" onClick={() => copy(appliedText)} aria-label="반영한 원고 복사" title="반영한 원고 복사">📋</button></div><p className="applied-text">{appliedText}</p></section>}

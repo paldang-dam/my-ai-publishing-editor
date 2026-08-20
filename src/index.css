@@ -8,3 +8,23 @@ a,
 .brand {
   word-break: keep-all;
 }
+/* 모바일에서 '예시 원고 불러오기'와 '편집 원칙 입력' 버튼 한 줄 정렬 */
+@media (max-width: 640px) {
+  .footer-options {
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    width: 100%;
+  }
+
+  .sample-button,
+  .guideline-button {
+    white-space: nowrap !important;
+    font-size: 13px !important;
+    padding: 6px 4px !important;
+    text-align: center;
+  }
+
+  .guideline-button {
+    padding-left: 8px !important;
+  }
+}

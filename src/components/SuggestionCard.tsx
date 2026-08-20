@@ -1,4 +1,4 @@
-export type Suggestion = { id: number; original_text: string; suggested_text: string; reason: string; alternatives: string[]; accepted: boolean }
+export type Suggestion = { id: number; original_text: string; suggested_text: string; reason: string; accepted: boolean }
 type Props = { item: Suggestion; index: number; onAccept: (id: number, accepted: boolean) => void }
 export default function SuggestionCard({ item, index, onAccept }: Props) {
   return <article className={`suggestion-card ${item.accepted ? 'accepted' : ''}`}>

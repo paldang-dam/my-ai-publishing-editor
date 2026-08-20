@@ -114,10 +114,10 @@ def refine_sentence(text: str):
         if re.search(pattern, revised):
             revised = re.sub(pattern, replacement, revised)
             reasons.append(reason)
-    # 규칙에 걸린 게 있으면 첫 번째 이유 반환, 없으면 교정 없음으로 처리
+   # 교정된 내용이 있으면 (수정본, 사유) 반환, 없으면 (원문, None) 반환
     if reasons:
         return revised, reasons[0]
-    return text.strip(), "필수 교정 사항은 없습니다."
+    return text.strip(), None
 
 def make_guideline_suggestions(text: str):
     with get_db() as conn:

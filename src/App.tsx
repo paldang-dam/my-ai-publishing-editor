@@ -132,7 +132,7 @@ export default function App() {
   const copy = async (value: string) => { try { await navigator.clipboard.writeText(value) } catch { setError('복사 기능을 사용할 수 없습니다.') } }
   return <div id="top"><EditorHeader savedCount={docs.length} onHistory={() => setHistoryOpen(true)} />
     <main>
-      <section className="hero"><h1>편집자를 위한 교정기</h1><p>출판사별 표기와 문체 기준을 편집 원칙에 직접 등록해 주세요.</p></section>
+      <section className="hero"><h1>편집자를 위한 교정기</h1><p>출판사별 표기와 문체 기준을 편집 원칙에 등록해 주세요.</p></section>
       <section className="editor-panel" aria-label="원고 입력"><div className="panel-title"><div><h2>원고 입력</h2></div><div className="editor-meta"><span>{characters.toLocaleString()}자</span><button className="copy-text-button" onClick={() => copy(text)} disabled={!text} aria-label="입력한 원고 복사" title="원고 복사">📋</button><button className="clear-text-button" onClick={() => { setText(''); setError('') }} disabled={!text} aria-label="입력한 원고 비우기" title="원고 비우기">×</button></div></div>
         <textarea value={text} onChange={e => setText(e.target.value)} placeholder="다듬고 싶은 원고를 입력해 주세요." aria-label="검토할 원고" />
         <div className="text-search" aria-label="원고에서 찾기"><label htmlFor="text-search-input">원고에서 찾기</label><div className="search-control"><input id="text-search-input" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="찾을 글자나 단어를 입력해 주세요" aria-label="찾을 글자나 단어" />{searchTerm && <button className="clear-search-button" type="button" onClick={() => setSearchTerm('')} aria-label="찾기어 비우기" title="찾기어 비우기">×</button>}</div>{searchTerm.trim() && <span className="search-count">{searchMatches}곳</span>}</div>

@@ -13,7 +13,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 DB_PATH = "./app.db"
-DB_PATH = "./app.db"
 def get_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)

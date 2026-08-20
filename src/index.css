@@ -28,3 +28,27 @@ a,
     padding-left: 8px !important;
   }
 }
+/* 세로 구분선 중앙 정렬 */
+.footer-options {
+  gap: 0 !important; /* 부모 gap을 없애고 버튼 padding으로만 균등 분할 */
+}
+
+.sample-button {
+  padding-right: 12px !important;
+}
+
+.guideline-button {
+  border-left: 1px solid var(--line) !important;
+  padding-left: 12px !important;
+  margin-left: 0 !important;
+}
+
+@media (max-width: 640px) {
+  .sample-button {
+    padding-right: 8px !important;
+  }
+  .guideline-button {
+    padding-left: 8px !important;
+  }
+}
+

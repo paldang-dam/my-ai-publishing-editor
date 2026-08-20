@@ -51,4 +51,14 @@ a,
     padding-left: 8px !important;
   }
 }
+/* 데스크탑: 줄바꿈 무시 */
+.mobile-break {
+  display: none;
+}
 
+/* 모바일(640px 이하): 원하는 위치에서만 줄바꿈 실행 */
+@media (max-width: 640px) {
+  .mobile-break {
+    display: inline;
+  }
+}

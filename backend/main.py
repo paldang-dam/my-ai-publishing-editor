@@ -5,14 +5,27 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 app = FastAPI()
-# 2. CORS 미들웨어 추가 (Vercel에서 보내는 요청 허용)
+# 1. 모든 도메인/메소드/헤더 허용
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+# 2. 브라우저의 사전 점검(OPTIONS) 요청을 무조건 통과시키는 전역 핸들러
+@app.options("/{full_path:path}")
+async def options_handler(request: Request, full_path: str):
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )
 DB_PATH = "./app.db"
 def get_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)

@@ -3,6 +3,16 @@ import re
 import sqlite3
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+app = FastAPI()
+# 2. CORS 미들웨어 추가 (Vercel에서 보내는 요청 허용)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+DB_PATH = "./app.db"
 DB_PATH = "./app.db"
 def get_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
